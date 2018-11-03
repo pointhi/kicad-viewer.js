@@ -83,57 +83,109 @@ class SexprParser
     # Expr := '(' { token | Expr } ')'.
     this.check('(')
 
-    list = []
+    key = null
+    values = []
     while @la != ')'
       if @la == null
         throw new Error("')' expected, but EOF reached")
       else if @la == '('
-        list.push this.parse_expr()
+        values.push this.parse_expr()
       else
-        list.push @la
+        if key == null
+          key = @la
+        else
+          values.push @la
         this.scan()
 
     this.scan()
-    return list
+    return {'k': key, 'v': values}
 
 
 # Our Viewer which shows renders the given KiCad sexpr
 class KiCadViewer
-  constructor: (@canvas, @sexpr) ->
+  constructor: (@canvas, @footprint) ->
     @ctx = @canvas.getContext '2d'
-    @grid_spacing = 10 # mm
-    @grid_width = 0.1 # mm
+    @grid_spacing = 1 # mm
+    @grid_width = 0.01 # mm
+
+    # TODO: calculate bounding box of footprint
+    @position = [270, 100]
+    @scale = 20
 
   draw: ->
-    # TODO: depending on footprint size
-    @ctx.scale(5, 5)
+    # set our transformations
+    @ctx.translate(@position[0],@position[1])
+    @ctx.scale(@scale, @scale)
 
+    # draw canvas
     this.draw_background()
-    this.draw_layers()
+    this.draw_footprint(@footprint.parsed.v)
 
   draw_background: ->
-    # main background color
+    # main background
     @ctx.fillStyle = 'rgba(0,0,0,1)'
-    @ctx.fillRect 0,0, @canvas.width, @canvas.height
+    start_x = -@position[0]/@scale
+    start_y = -@position[1]/@scale
+    width = @canvas.width/@scale
+    height = @canvas.height/@scale
+    @ctx.fillRect start_x, start_y, width, height
 
     # draw grid
+    from_x = start_x - (start_x % @grid_spacing) - @grid_spacing
+    from_y = start_y - (start_y % @grid_spacing) - @grid_spacing
+    to_x = from_x + width + @grid_spacing
+    to_y = from_y + height + @grid_spacing
     @ctx.strokeStyle = 'rgba(255,255,255,1)'
     @ctx.lineWidth = @grid_width
     @ctx.beginPath()
-    # TODO: use bounding-box of visible area in canvas
-    for x in [0...@canvas.width] by @grid_spacing
-      @ctx.moveTo(x, 0)
-      @ctx.lineTo(x, @canvas.height)
-    for y in [0...@canvas.height] by @grid_spacing
-      @ctx.moveTo(0, y)
-      @ctx.lineTo(@canvas.width, y)
+    for x in [from_x...to_x] by @grid_spacing
+      @ctx.moveTo(x, from_y)
+      @ctx.lineTo(x, to_y)
+    for y in [from_y...to_y] by @grid_spacing
+      @ctx.moveTo(from_x, y)
+      @ctx.lineTo(to_x, y)
     @ctx.stroke()
 
-  draw_layers: ->
-    # TODO: implement sexpr render
-    @ctx.fillStyle = 'rgba(255,255,255,1)'
-    @ctx.font = "20px Arial"
-    @ctx.fillText("TODO",10,50)
+  draw_footprint: (kicad_fp) ->
+    @ctx.fillStyle = 'rgba(200,200,200,0.8)'
+    @ctx.strokeStyle = 'rgba(200,200,200,0.8)'
+
+    for elem in kicad_fp
+      if elem.length == 0
+        continue
+
+      switch elem.k
+        when 'layer' then continue
+        when 'tedit' then continue
+        when 'descr' then continue
+        when 'tags' then continue
+        when 'model' then continue
+        when 'fp_line' then this.draw_fp_line(elem.v)
+        when 'fp_text' then this.draw_fp_text(elem.v)
+        else
+          console.warn("unknow type:", elem.k)
+
+  draw_fp_line: (elem) ->
+    start = (elem.filter (e) -> e.k == 'start')[0].v
+    end = (elem.filter (e) -> e.k == 'end')[0].v
+    layer = (elem.filter (e) -> e.k == 'layer')[0].v
+    width = (elem.filter (e) -> e.k == 'width')[0].v
+
+    @ctx.lineWidth = width[0]
+    @ctx.beginPath()
+    @ctx.moveTo(start[0], start[1])
+    @ctx.lineTo(end[0], end[1])
+    @ctx.stroke()
+
+
+  draw_fp_text: (elem) ->
+    console.log(elem)
+    text = elem[1]
+    at = (elem.filter (e) -> e.k == 'at')[0].v
+
+    @ctx.font = "2px Arial"
+    @ctx.textAlign="center";
+    @ctx.fillText(text, at[0],at[1])
 
 
 # get all DOM elements which child is "kicad". For now only use data inline into the HTML as input
