@@ -1,0 +1,7 @@
+language: node_js
+cache: npm
+install:
+  - npm install coffee coffeelint
+script:
+  - make style
+  - make build
