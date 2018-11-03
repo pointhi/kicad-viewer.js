@@ -1,4 +1,29 @@
 # Scanner for Sexpr parser
+
+color = {}
+color['Fg'] = {'r': 255, 'g': 255, 'b': 255}
+color['Bg'] = {'r': 0, 'g': 0, 'b': 0}
+color['F.Cu'] = {'r': 132, 'g': 0, 'b': 0}
+color['B.Cu'] = {'r': 0, 'g': 132, 'b': 0}
+color['F.Adhes'] = {'r': 132, 'g': 0, 'b': 132}
+color['B.Adhes'] = {'r': 0, 'g': 0, 'b': 132}
+color['F.Paste'] = {'r': 132, 'g': 0, 'b': 0}
+color['B.Paste'] = {'r': 0, 'g': 194, 'b': 194}
+color['F.SilkS'] = {'r': 0, 'g': 132, 'b': 132}
+color['B.SilkS'] = {'r': 132, 'g': 0, 'b': 132}
+color['F.Mask'] = {'r': 132, 'g': 0, 'b': 132}
+color['B.Mask'] = {'r': 132, 'g': 132, 'b': 0}
+color['Dwgs.User'] = {'r': 194, 'g': 194, 'b': 194}
+color['Cmts.User'] = {'r': 0, 'g': 0, 'b': 132}
+color['Eco1.User'] = {'r': 0, 'g': 132, 'b': 0}
+color['Eco2.user'] = {'r': 194, 'g': 194, 'b': 0}
+color['Egde.Cuts'] = {'r': 194, 'g': 194, 'b': 0}
+color['Margin'] = {'r': 194, 'g': 0, 'b': 194}
+color['F.CrtYd'] = {'r': 132, 'g': 132, 'b': 132}
+color['B.CrtYd'] = {'r': 0, 'g': 0, 'b': 0}
+color['F.Fab'] = {'r': 194, 'g': 194, 'b': 0}
+color['B.Fab'] = {'r': 132, 'g': 0, 'b': 0}
+
 class SexprScanner
   constructor: (@raw) ->
     @index = 0 # index of current character
@@ -121,9 +146,12 @@ class KiCadViewer
     this.draw_background()
     this.draw_footprint(@footprint.parsed.v)
 
+  get_color: (rgb) ->
+    return "rgb(#{rgb['r']}, #{rgb['g']}, #{rgb['b']})"
+
   draw_background: ->
     # main background
-    @ctx.fillStyle = 'rgba(0,0,0,1)'
+    @ctx.fillStyle = this.get_color(color['Bg'])
     start_x = -@position[0]/@scale
     start_y = -@position[1]/@scale
     width = @canvas.width/@scale
@@ -135,7 +163,7 @@ class KiCadViewer
     from_y = start_y - (start_y % @grid_spacing) - @grid_spacing
     to_x = from_x + width + @grid_spacing
     to_y = from_y + height + @grid_spacing
-    @ctx.strokeStyle = 'rgba(255,255,255,1)'
+    @ctx.strokeStyle = this.get_color(color['Fg'])
     @ctx.lineWidth = @grid_width
     @ctx.beginPath()
     for x in [from_x...to_x] by @grid_spacing
@@ -147,9 +175,6 @@ class KiCadViewer
     @ctx.stroke()
 
   draw_footprint: (kicad_fp) ->
-    @ctx.fillStyle = 'rgba(200,200,200,0.8)'
-    @ctx.strokeStyle = 'rgba(200,200,200,0.8)'
-
     for elem in kicad_fp
       if elem.length == 0
         continue
@@ -171,6 +196,9 @@ class KiCadViewer
     layer = (elem.filter (e) -> e.k == 'layer')[0].v
     width = (elem.filter (e) -> e.k == 'width')[0].v
 
+    @ctx.strokeStyle = this.get_color(color[layer[0]])
+
+    @ctx.lineCap = "round"
     @ctx.lineWidth = width[0]
     @ctx.beginPath()
     @ctx.moveTo(start[0], start[1])
@@ -180,7 +208,10 @@ class KiCadViewer
   draw_fp_text: (elem) ->
     console.log(elem)
     text = elem[1]
+    layer = (elem.filter (e) -> e.k == 'layer')[0].v
     at = (elem.filter (e) -> e.k == 'at')[0].v
+
+    @ctx.fillStyle = this.get_color(color[layer[0]])
 
     @ctx.font = "2px Arial"
     @ctx.textAlign="center"
