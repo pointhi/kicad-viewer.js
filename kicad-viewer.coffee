@@ -1,10 +1,100 @@
+# Scanner for Sexpr parser
+class SexprScanner
+  constructor: (@raw) ->
+    @index = 0 # index of current character
+    @ch = '' # current character
+    this.next_ch()
+
+  next_ch: ->
+    if @index < @raw.length
+      @ch = @raw[@index]
+      @index += 1
+    else
+      @ch = null # EOF reached
+
+  is_whitespace: (ch) ->
+    return ch in [' ', '\t', '\r', '\n']
+
+  is_control: (ch) ->
+    return ch in ['(', ')']
+
+  parse_string: () ->
+    string = ""
+    this.next_ch()
+    while @ch != null && @ch != '"'
+      # TODO: escaping
+      string += @ch
+      this.next_ch()
+    if @ch != '"'
+      throw new new Error("'\"' expected")
+    this.next_ch()
+    return string
+
+  next: ->
+    # skip whitespaces
+    while this.is_whitespace(@ch)
+      this.next_ch()
+
+    switch @ch
+      when null then return null # EOF reached
+      when '(' then this.next_ch(); return '('
+      when ')' then this.next_ch(); return ')'
+      when '"' then return this.parse_string()
+      else
+        # parse token
+        token = ""
+        while @ch != null && not this.is_whitespace(@ch) && not this.is_control(@ch)
+          token += @ch
+          this.next_ch()
+        # TODO: format to int/float if applicable
+        return token
+
+
 # Parse sexpr into nested arrays for easier processing
 class SexprParser
-  constructor: (@raw) ->
-    @parsed = this.parse_sexpr()
+  constructor: (raw) ->
+    @scanner = new SexprScanner raw
 
-  parse_sexpr: ->
-    return []
+    # We build an LL1 parser
+    @t = null # Current token
+    @la = null # Look ahead token
+    this.scan()
+
+    # Parse our sexpr file
+    @parsed = this.parse()
+    console.log(@parsed)
+
+  scan: ->
+    @t = @la
+    @la = @scanner.next()
+
+  check: (token) ->
+    if @la == token
+      this.scan()
+    else
+      throw new Error("invalid token, '" + String(token) + "' expected but '" + @la + "' was found")
+
+  parse: ->
+    list = this.parse_expr()
+    this.check(null)
+    return list
+
+  parse_expr: ->
+    # Expr := '(' { token | Expr } ')'.
+    this.check('(')
+
+    list = []
+    while @la != ')'
+      if @la == null
+        throw new Error("')' expected, but EOF reached")
+      else if @la == '('
+        list.push this.parse_expr()
+      else
+        list.push @la
+        this.scan()
+
+    this.scan()
+    return list
 
 
 # Our Viewer which shows renders the given KiCad sexpr
@@ -46,8 +136,7 @@ class KiCadViewer
     @ctx.fillText("TODO",10,50)
 
 
-# get all DOM elements which child is "kicad"
-# for now only use data inline into the HTML as input
+# get all DOM elements which child is "kicad". For now only use data inline into the HTML as input
 @entities = []
 for canvas in document.getElementsByClassName 'kicad'
   sexpr = new SexprParser canvas.innerHTML
