@@ -177,14 +177,13 @@ class KiCadViewer
     @ctx.lineTo(end[0], end[1])
     @ctx.stroke()
 
-
   draw_fp_text: (elem) ->
     console.log(elem)
     text = elem[1]
     at = (elem.filter (e) -> e.k == 'at')[0].v
 
     @ctx.font = "2px Arial"
-    @ctx.textAlign="center";
+    @ctx.textAlign="center"
     @ctx.fillText(text, at[0],at[1])
 
 
