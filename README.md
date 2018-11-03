@@ -1,5 +1,7 @@
 # kicad-viewer.js
 
+[![Build Status](https://travis-ci.com/pointhi/kicad-viewer.js.svg?branch=master)](https://travis-ci.com/pointhi/kicad-viewer.js)
+
 A browser based viewer for KiCad files (.kicad_mod files only for now)
 
 This is only a experiment. Don't expect anything for now.
