@@ -210,7 +210,7 @@ class KiCadViewer
     grid_ctx.stroke()
 
   draw_footprint: (kicad_fp) ->
-    for elem in kicad_fp
+    for elem in kicad_fp[1...]
       if elem.length == 0
         continue
 
