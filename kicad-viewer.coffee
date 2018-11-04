@@ -7,31 +7,38 @@ All rights reserved.
 @see: https://github.com/pointhi/kicad-viewer.js/blob/master/LICENSE
 ###
 
+mod_edit_colors = {
+  "Fg":         "rgb(255, 255, 255)"
+  "Bg":         "rgb(0, 0, 0)"
+  "F.Cu":       "rgb(132, 0, 0)"
+  "In1.Cu":     "rgb(194, 194, 0)"
+  "In2.Cu":     "rgb(194, 0, 194)"
+  "In3.Cu":     "rgb(194, 0, 0)"
+  "In4.Cu":     "rgb(0, 132, 132)"
+  "In5.Cu":     "rgb(0, 132, 0)"
+  "In6.Cu":     "rgb(0, 0, 132)"
+  "B.Cu":       "rgb(0, 132, 0)"
+  "F.Adhes":    "rgb(132, 0, 132)"
+  "B.Adhes":    "rgb(0, 0, 132)"
+  "F.Paste":    "rgb(132, 0, 0)"
+  "B.Paste":    "rgb(0, 194, 194)"
+  "F.SilkS":    "rgb(0, 132, 132)"
+  "B.SilkS":    "rgb(132, 0, 132)"
+  "F.Mask":     "rgb(132, 0, 132)"
+  "B.Mask":     "rgb(132, 132, 0)"
+  "Dwgs.User":  "rgb(194, 194, 194)"
+  "Cmts.User":  "rgb(0, 0, 132)"
+  "Eco1.User":  "rgb(0, 132, 0)"
+  "Eco2.user":  "rgb(194, 194, 0)"
+  "Egde.Cuts":  "rgb(194, 194, 0)"
+  "Margin":     "rgb(194, 0, 194)"
+  "F.CrtYd":    "rgb(194, 194, 194)"
+  "B.CrtYd":    "rgb(132, 132, 132)"
+  "F.Fab":      "rgb(132, 132, 132)"
+  "B.Fab":      "rgb(0, 0, 132)"
+}
 
-color = {}
-color['Fg'] = {'r': 255, 'g': 255, 'b': 255}
-color['Bg'] = {'r': 0, 'g': 0, 'b': 0}
-color['F.Cu'] = {'r': 132, 'g': 0, 'b': 0}
-color['B.Cu'] = {'r': 0, 'g': 132, 'b': 0}
-color['F.Adhes'] = {'r': 132, 'g': 0, 'b': 132}
-color['B.Adhes'] = {'r': 0, 'g': 0, 'b': 132}
-color['F.Paste'] = {'r': 132, 'g': 0, 'b': 0}
-color['B.Paste'] = {'r': 0, 'g': 194, 'b': 194}
-color['F.SilkS'] = {'r': 0, 'g': 132, 'b': 132}
-color['B.SilkS'] = {'r': 132, 'g': 0, 'b': 132}
-color['F.Mask'] = {'r': 132, 'g': 0, 'b': 132}
-color['B.Mask'] = {'r': 132, 'g': 132, 'b': 0}
-color['Dwgs.User'] = {'r': 194, 'g': 194, 'b': 194}
-color['Cmts.User'] = {'r': 0, 'g': 0, 'b': 132}
-color['Eco1.User'] = {'r': 0, 'g': 132, 'b': 0}
-color['Eco2.user'] = {'r': 194, 'g': 194, 'b': 0}
-color['Egde.Cuts'] = {'r': 194, 'g': 194, 'b': 0}
-color['Margin'] = {'r': 194, 'g': 0, 'b': 194}
-color['F.CrtYd'] = {'r': 132, 'g': 132, 'b': 132}
-color['B.CrtYd'] = {'r': 0, 'g': 0, 'b': 0}
-color['F.Fab'] = {'r': 194, 'g': 194, 'b': 0}
-color['B.Fab'] = {'r': 132, 'g': 0, 'b': 0}
-
+color = mod_edit_colors
 
 # Scanner for Sexpr parser
 class SexprScanner
@@ -144,8 +151,8 @@ class KiCadViewer
     @grid_width = 0.01 # mm
 
     # TODO: calculate bounding box of footprint
-    @position = [270, 100]
-    @scale = 20
+    @position = [290, 100]
+    @scale = 18
 
   draw: ->
     # set our transformations
@@ -156,12 +163,9 @@ class KiCadViewer
     this.draw_background()
     this.draw_footprint(@footprint.parsed.v)
 
-  get_color: (rgb) ->
-    return "rgb(#{rgb['r']}, #{rgb['g']}, #{rgb['b']})"
-
   draw_background: ->
     # main background
-    @ctx.fillStyle = this.get_color(color['Bg'])
+    @ctx.fillStyle = color['Bg']
     start_x = -@position[0]/@scale
     start_y = -@position[1]/@scale
     width = @canvas.width/@scale
@@ -173,7 +177,7 @@ class KiCadViewer
     from_y = start_y - (start_y % @grid_spacing) - @grid_spacing
     to_x = from_x + width + @grid_spacing
     to_y = from_y + height + @grid_spacing
-    @ctx.strokeStyle = this.get_color(color['Fg'])
+    @ctx.strokeStyle = color['Fg']
     @ctx.lineWidth = @grid_width
     @ctx.beginPath()
     for x in [from_x...to_x] by @grid_spacing
@@ -206,7 +210,7 @@ class KiCadViewer
     layer = (elem.filter (e) -> e.k == 'layer')[0].v
     width = (elem.filter (e) -> e.k == 'width')[0].v
 
-    @ctx.strokeStyle = this.get_color(color[layer[0]])
+    @ctx.strokeStyle = color[layer[0]]
 
     @ctx.lineCap = "round"
     @ctx.lineWidth = width[0]
@@ -221,9 +225,9 @@ class KiCadViewer
     layer = (elem.filter (e) -> e.k == 'layer')[0].v
     at = (elem.filter (e) -> e.k == 'at')[0].v
 
-    @ctx.fillStyle = this.get_color(color[layer[0]])
+    @ctx.fillStyle = color[layer[0]]
 
-    @ctx.font = "2px Arial"
+    @ctx.font = "1.5px Courier"  # TODO: rounding errors of some charactes with other fonts
     @ctx.textAlign="center"
     @ctx.fillText(text, at[0],at[1])
 
