@@ -88,7 +88,13 @@ class SexprScanner
         while @ch != null && not this.is_whitespace(@ch) && not this.is_control(@ch)
           token += @ch
           this.next_ch()
-        # TODO: format to int/float if applicable
+
+        if /^-?\d+$/.test(token)
+          return parseInt(token)
+
+        if /^-?\d+(?:[.,]\d*?)?$/.test(token)
+          return parseFloat(token)
+
         return token
 
 
@@ -142,6 +148,9 @@ class SexprParser
     this.scan()
     return {'k': key, 'v': values}
 
+sexpr_find_child = (elem, type) ->
+  return (elem.filter (e) -> e.k == type)[0].v
+
 
 # Our Viewer which shows renders the given KiCad sexpr
 class KiCadViewer
@@ -154,6 +163,13 @@ class KiCadViewer
     @position = [290, 100]
     @scale = 18
 
+  get_ctx: (layer) ->
+    # TODO: one context per layer
+    @ctx.strokeStyle = color[layer]
+    @ctx.fillStyle = color[layer]
+
+    return @ctx
+
   draw: ->
     # set our transformations
     @ctx.translate(@position[0],@position[1])
@@ -165,28 +181,27 @@ class KiCadViewer
 
   draw_background: ->
     # main background
-    @ctx.fillStyle = color['Bg']
     start_x = -@position[0]/@scale
     start_y = -@position[1]/@scale
-    width = @canvas.width/@scale
-    height = @canvas.height/@scale
-    @ctx.fillRect start_x, start_y, width, height
+    width   = @canvas.width/@scale
+    height  = @canvas.height/@scale
+    this.get_ctx("Bg").fillRect start_x, start_y, width, height
 
     # draw grid
-    from_x = start_x - (start_x % @grid_spacing) - @grid_spacing
-    from_y = start_y - (start_y % @grid_spacing) - @grid_spacing
-    to_x = from_x + width + @grid_spacing
-    to_y = from_y + height + @grid_spacing
-    @ctx.strokeStyle = color['Fg']
-    @ctx.lineWidth = @grid_width
-    @ctx.beginPath()
+    from_x  = start_x - (start_x % @grid_spacing) - @grid_spacing
+    from_y  = start_y - (start_y % @grid_spacing) - @grid_spacing
+    to_x    = from_x + width + @grid_spacing
+    to_y    = from_y + height + @grid_spacing
+    grid_ctx = this.get_ctx("Fg")
+    grid_ctx.lineWidth = @grid_width
+    grid_ctx.beginPath()
     for x in [from_x...to_x] by @grid_spacing
-      @ctx.moveTo(x, from_y)
-      @ctx.lineTo(x, to_y)
+      grid_ctx.moveTo(x, from_y)
+      grid_ctx.lineTo(x, to_y)
     for y in [from_y...to_y] by @grid_spacing
-      @ctx.moveTo(from_x, y)
-      @ctx.lineTo(to_x, y)
-    @ctx.stroke()
+      grid_ctx.moveTo(from_x, y)
+      grid_ctx.lineTo(to_x, y)
+    grid_ctx.stroke()
 
   draw_footprint: (kicad_fp) ->
     for elem in kicad_fp
@@ -194,42 +209,64 @@ class KiCadViewer
         continue
 
       switch elem.k
-        when 'layer' then continue
-        when 'tedit' then continue
-        when 'descr' then continue
-        when 'tags' then continue
-        when 'model' then continue
-        when 'fp_line' then this.draw_fp_line(elem.v)
-        when 'fp_text' then this.draw_fp_text(elem.v)
+        when 'layer'    then continue
+        when 'tedit'    then continue
+        when 'descr'    then continue
+        when 'tags'     then continue
+        when 'model'    then continue
+        when 'fp_line'  then this.draw_fp_line(elem.v)
+        when 'fp_text'  then this.draw_fp_text(elem.v)
+        when 'pad'      then this.draw_pad(elem.v)
         else
           console.warn("unknow type:", elem.k)
 
   draw_fp_line: (elem) ->
-    start = (elem.filter (e) -> e.k == 'start')[0].v
-    end = (elem.filter (e) -> e.k == 'end')[0].v
-    layer = (elem.filter (e) -> e.k == 'layer')[0].v
-    width = (elem.filter (e) -> e.k == 'width')[0].v
+    start = sexpr_find_child(elem, 'start')
+    end   = sexpr_find_child(elem, 'end')
+    layer = sexpr_find_child(elem, 'layer')[0]
+    width = sexpr_find_child(elem, 'width')[0]
 
-    @ctx.strokeStyle = color[layer[0]]
+    ctx = this.get_ctx(layer)
+    ctx.lineCap = "round"
+    ctx.lineWidth = width
 
-    @ctx.lineCap = "round"
-    @ctx.lineWidth = width[0]
-    @ctx.beginPath()
-    @ctx.moveTo(start[0], start[1])
-    @ctx.lineTo(end[0], end[1])
-    @ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(start[0], start[1])
+    ctx.lineTo(end[0], end[1])
+    ctx.stroke()
 
   draw_fp_text: (elem) ->
-    console.log(elem)
-    text = elem[1]
-    layer = (elem.filter (e) -> e.k == 'layer')[0].v
-    at = (elem.filter (e) -> e.k == 'at')[0].v
+    text    = elem[1]
+    childs  = elem[2...]
+    at      = sexpr_find_child(childs, 'at')
+    layer   = sexpr_find_child(childs, 'layer')[0]
 
-    @ctx.fillStyle = color[layer[0]]
+    ctx = this.get_ctx(layer)
+    ctx.font = "1.5px Courier"  # TODO: rounding errors of some charactes with other fonts
+    ctx.textAlign="center"
 
-    @ctx.font = "1.5px Courier"  # TODO: rounding errors of some charactes with other fonts
-    @ctx.textAlign="center"
-    @ctx.fillText(text, at[0],at[1])
+    ctx.fillText(text, at[0],at[1])
+
+  draw_pad: (elem) ->
+    number  = elem[0]
+    type    = elem[1]
+    shape   = elem[2]
+    childs  = elem[3...]
+    at      = sexpr_find_child(childs, 'at')
+    size    = sexpr_find_child(childs, 'size')
+    layers  = sexpr_find_child(childs, 'layers')
+
+    ctx = this.get_ctx('Fg')  # TODO: pad layer
+    ctx.lineCap = "round"
+    ctx.lineWidth = 0.1
+
+    # TODO: draw real pad instead of a simple cross
+    ctx.beginPath()
+    ctx.moveTo(at[0]-size[0]/2, at[1])
+    ctx.lineTo(at[0]+size[0]/2, at[1])
+    ctx.moveTo(at[0], at[1]-size[1]/2)
+    ctx.lineTo(at[0], at[1]+size[1]/2)
+    ctx.stroke()
 
 
 # get all DOM elements which child is "kicad". For now only use data inline into the HTML as input
