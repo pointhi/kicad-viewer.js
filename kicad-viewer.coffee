@@ -171,6 +171,9 @@ class KiCadViewer
     return @ctx
 
   draw: ->
+    # store transformation matrix
+    @ctx.save()
+
     # set our transformations
     @ctx.translate(@position[0],@position[1])
     @ctx.scale(@scale, @scale)
@@ -178,6 +181,9 @@ class KiCadViewer
     # draw canvas
     this.draw_background()
     this.draw_footprint(@footprint.parsed.v)
+
+    # restore transformation matrix
+    @ctx.restore()
 
   draw_background: ->
     # main background
@@ -190,8 +196,8 @@ class KiCadViewer
     # draw grid
     from_x  = start_x - (start_x % @grid_spacing) - @grid_spacing
     from_y  = start_y - (start_y % @grid_spacing) - @grid_spacing
-    to_x    = from_x + width + @grid_spacing
-    to_y    = from_y + height + @grid_spacing
+    to_x    = from_x + width + 2*@grid_spacing
+    to_y    = from_y + height + 2*@grid_spacing
     grid_ctx = this.get_ctx("Fg")
     grid_ctx.lineWidth = @grid_width
     grid_ctx.beginPath()
@@ -268,6 +274,55 @@ class KiCadViewer
     ctx.lineTo(at[0], at[1]+size[1]/2)
     ctx.stroke()
 
+  make_interactive: ->
+    @is_dragging = false  # TODO: use current mouse state
+    @last_pos = undefined
+
+    this_obj = this
+
+    @canvas.onmousedown = ->
+      @is_dragging = true
+
+    @canvas.onmouseup = ->
+      @is_dragging = false
+
+    @canvas.onmousemove = (event) ->
+      cur_pos = {
+        x: event.clientX
+        y : event.clientY
+      }
+
+      if not @is_dragging
+        @last_pos = cur_pos
+        return
+
+      if @last_pos == undefined
+        @last_pos = cur_pos
+
+      this_obj.position[0] -= @last_pos.x - cur_pos.x
+      this_obj.position[1] -= @last_pos.y - cur_pos.y
+
+      @last_pos = cur_pos
+      this_obj.draw()
+
+    mouse_scroll_func = (event) ->
+      delta = event.delta #|| event.originalEvent.wheelDelta
+      if delta == undefined
+        delta = event.detail #we are on firefox
+
+      if delta >= 0
+        this_obj.scale *= 2/delta
+      else
+        this_obj.scale *= -delta/2
+
+      # TODO: zoom to position of mouse pointer
+
+      event.preventDefault()
+      this_obj.draw()
+
+    @canvas.onmousewheel = mouse_scroll_func  # general
+    @canvas.addEventListener('DOMMouseScroll', mouse_scroll_func, false)  # Firefox specific
+
 
 # get all DOM elements which child is "kicad". For now only use data inline into the HTML as input
 @entities = []
@@ -277,3 +332,6 @@ for canvas in document.getElementsByClassName 'kicad'
 
 # render every KiCad View a single time
 @entities.forEach (e) -> e.draw()
+
+# make canvas interactive
+@entities.forEach (e) -> e.make_interactive()
