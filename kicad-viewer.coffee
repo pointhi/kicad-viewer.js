@@ -1,4 +1,12 @@
-# Scanner for Sexpr parser
+###
+BSD 3-Clause License
+
+Copyright (c) 2018, Thomas Pointhuber
+All rights reserved.
+
+@see: https://github.com/pointhi/kicad-viewer.js/blob/master/LICENSE
+###
+
 
 color = {}
 color['Fg'] = {'r': 255, 'g': 255, 'b': 255}
@@ -24,6 +32,8 @@ color['B.CrtYd'] = {'r': 0, 'g': 0, 'b': 0}
 color['F.Fab'] = {'r': 194, 'g': 194, 'b': 0}
 color['B.Fab'] = {'r': 132, 'g': 0, 'b': 0}
 
+
+# Scanner for Sexpr parser
 class SexprScanner
   constructor: (@raw) ->
     @index = 0 # index of current character
