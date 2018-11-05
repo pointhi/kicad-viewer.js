@@ -268,19 +268,19 @@ class KiCadViewer
 
     switch shape
       when 'oval'
-        @ctx.beginPath();
-        @ctx.arc(at[0], at[1], size[1]/2, 0, 2*Math.PI, false);
+        @ctx.beginPath()
+        @ctx.arc(at[0], at[1], size[1]/2, 0, 2*Math.PI, false)
         # TODO actually handle non circle ovals
       when 'rect'
-        @ctx.beginPath();
-        @ctx.rect(at[0]-size[0]/2, at[1]-size[1]/2, size[0], size[1], false);
+        @ctx.beginPath()
+        @ctx.rect(at[0]-size[0]/2, at[1]-size[1]/2, size[0], size[1], false)
       else
         console.warn("unknow shape:", shape)
 
     if drill
-      @ctx.arc(at[0], at[1], drill/2, 0, 2*Math.PI, true);
+      @ctx.arc(at[0], at[1], drill/2, 0, 2*Math.PI, true)
 
-    @ctx.fill('evenodd');
+    @ctx.fill('evenodd')
 
   make_interactive: ->
     @is_dragging = false  # TODO: use current mouse state
