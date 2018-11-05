@@ -9,6 +9,7 @@ All rights reserved.
 
 mod_edit_colors = {
   "Fg":         "rgb(255, 255, 255)"
+  "Pads":       "rgb(0, 132, 0)"
   "Bg":         "rgb(0, 0, 0)"
   "F.Cu":       "rgb(132, 0, 0)"
   "In1.Cu":     "rgb(194, 194, 0)"
@@ -261,18 +262,25 @@ class KiCadViewer
     at      = sexpr_find_child(childs, 'at')
     size    = sexpr_find_child(childs, 'size')
     layers  = sexpr_find_child(childs, 'layers')
+    drill   = sexpr_find_child(childs, 'drill')
 
-    ctx = this.get_ctx('Fg')  # TODO: pad layer
-    ctx.lineCap = "round"
-    ctx.lineWidth = 0.1
+    ctx = this.get_ctx('Pads')
 
-    # TODO: draw real pad instead of a simple cross
-    ctx.beginPath()
-    ctx.moveTo(at[0]-size[0]/2, at[1])
-    ctx.lineTo(at[0]+size[0]/2, at[1])
-    ctx.moveTo(at[0], at[1]-size[1]/2)
-    ctx.lineTo(at[0], at[1]+size[1]/2)
-    ctx.stroke()
+    switch shape
+      when 'oval'
+        @ctx.beginPath();
+        @ctx.arc(at[0], at[1], size[1]/2, 0, 2*Math.PI, false);
+        # TODO actually handle non circle ovals
+      when 'rect'
+        @ctx.beginPath();
+        @ctx.rect(at[0]-size[0]/2, at[1]-size[1]/2, size[0], size[1], false);
+      else
+        console.warn("unknow shape:", shape)
+
+    if drill
+      @ctx.arc(at[0], at[1], drill/2, 0, 2*Math.PI, true);
+
+    @ctx.fill('evenodd');
 
   make_interactive: ->
     @is_dragging = false  # TODO: use current mouse state
