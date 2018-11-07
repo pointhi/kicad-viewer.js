@@ -100,8 +100,11 @@ class SexprScanner
 
 
 # Parse sexpr into nested arrays for easier processing
-class SexprParser
+class @SexprParser
   constructor: (raw) ->
+    this.update(raw)
+
+  update: (raw) ->
     @scanner = new SexprScanner raw
 
     # We build an LL1 parser
@@ -111,7 +114,6 @@ class SexprParser
 
     # Parse our sexpr file
     @parsed = this.parse()
-    console.log(@parsed)
 
   scan: ->
     @t = @la
@@ -154,7 +156,7 @@ sexpr_find_child = (elem, type) ->
 
 
 # Our Viewer which shows renders the given KiCad sexpr
-class KiCadViewer
+class @KiCadViewer
   constructor: (@canvas, @footprint) ->
     @ctx = @canvas.getContext '2d'
     @grid_spacing = 1 # mm

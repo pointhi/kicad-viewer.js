@@ -7,7 +7,12 @@
 <body>
 	<section>
 		<h1>kicad-viewer.js Example</h1>
-		<canvas id="canvas" class="kicad" width="600" height="400" style="border: 1px solid black">
+      <b>WARNING: this is only a demo, which is only partial working at the moment!</b>
+      <p>Source can be found at: <a href="https://github.com/pointhi/kicad-viewer.js">https://github.com/pointhi/kicad-viewer.js</a></p>
+      <div style="width: 100%; display: table;">
+        <div style="display: table-row">
+          <div style="width: 10%; display: table-cell;">
+                    <textarea id="input" cols="120" rows="35">
 (module Connector_PinSocket_2.54mm:PinSocket_1x04_P2.54mm_Vertical (layer F.Cu) (tedit 5A19A429)
   (descr "Through hole straight socket strip, 1x04, 2.54mm pitch, single row (from Kicad 4.0.7), script generated")
   (tags "Through hole socket strip THT 1x04 2.54mm single row")
@@ -44,10 +49,32 @@
     (scale (xyz 1 1 1))
     (rotate (xyz 0 0 0))
   )
-)
-		</canvas>
-        <p>Footprint: <i>Connector_PinSocket_2.54mm:PinSocket_1x04_P2.54mm_Vertical</i></p>
+)</textarea>
+            <p>Footprint: <i>Connector_PinSocket_2.54mm:PinSocket_1x04_P2.54mm_Vertical</i></p>
+          </div>
+          <div style="display: table-cell;">
+            <canvas id="canvas" width="600px" height="500px" style="border: 1px solid black"></canvas>
+          </div>
+        </div>
+      </div>
 	</section>
     <script src="kicad-viewer.js"></script>
+<script>
+    canvas = document.getElementById('canvas');
+    input = document.getElementById('input');
+
+    parser = new SexprParser(input.value);
+
+    viewer = new KiCadViewer(canvas, parser);
+
+    viewer.draw();
+
+    viewer.make_interactive();
+
+    input.oninput = function() {
+        parser.update(input.value);
+        viewer.draw();
+    }
+</script>
 </body>
 </html>
