@@ -1,0 +1,28 @@
+image: node:8-slim
+
+before_script:
+  - npm install -g coffeescript coffeelint
+
+build:
+  stage: build
+  script:
+  - coffee --compile kicad-viewer.coffee
+
+test:
+  stage: test
+  script:
+  - coffeelint kicad-viewer.coffee -f coffeelint.json
+
+pages:
+  stage: deploy
+  script:
+  - coffee --compile kicad-viewer.coffee
+  - mkdir public
+  - cp example.html public/index.html
+  - cp kicad-viewer.js public/kicad-viewer.js
+  artifacts:
+    paths:
+    - public
+  only:
+  - master
+
