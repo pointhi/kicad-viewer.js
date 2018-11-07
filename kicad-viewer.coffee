@@ -152,7 +152,11 @@ class @SexprParser
     return {'k': key, 'v': values}
 
 sexpr_find_child = (elem, type) ->
-  return (elem.filter (e) -> e.k == type)[0].v
+  elements = elem.filter (e) -> e.k == type
+  if elements.length > 0
+    return elements[0].v
+  else
+    return null
 
 
 # Our Viewer which shows renders the given KiCad sexpr
@@ -222,7 +226,9 @@ class @KiCadViewer
         when 'tedit'    then continue
         when 'descr'    then continue
         when 'tags'     then continue
+        when 'attr'     then continue
         when 'model'    then continue
+        when 'solder_mask_margin' then continue
         when 'fp_line'  then this.draw_fp_line(elem.v)
         when 'fp_text'  then this.draw_fp_text(elem.v)
         when 'pad'      then this.draw_pad(elem.v)
@@ -267,22 +273,29 @@ class @KiCadViewer
     drill   = sexpr_find_child(childs, 'drill')
 
     ctx = this.get_ctx('Pads')
-
     switch shape
+      when 'circle'
+        ctx.beginPath()
+        ctx.arc(at[0], at[1], size[1]/2, 0, 2*Math.PI, false)
       when 'oval'
-        @ctx.beginPath()
-        @ctx.arc(at[0], at[1], size[1]/2, 0, 2*Math.PI, false)
+        ctx.beginPath()
+        ctx.arc(at[0], at[1], size[1]/2, 0, 2*Math.PI, false)
         # TODO actually handle non circle ovals
       when 'rect'
-        @ctx.beginPath()
-        @ctx.rect(at[0]-size[0]/2, at[1]-size[1]/2, size[0], size[1], false)
+        ctx.beginPath()
+        ctx.rect(at[0]-size[0]/2, at[1]-size[1]/2, size[0], size[1], false)
+      when 'roundrect'
+        roundrect_rratio = sexpr_find_child(childs, 'roundrect_rratio')
+        ctx.beginPath()
+        ctx.rect(at[0]-size[0]/2, at[1]-size[1]/2, size[0], size[1], false)
+        # TODO actually handle roundrect pads
       else
         console.warn("unknow shape:", shape)
 
     if drill
-      @ctx.arc(at[0], at[1], drill/2, 0, 2*Math.PI, true)
+      ctx.arc(at[0], at[1], drill/2, 0, 2*Math.PI, true)
 
-    @ctx.fill('evenodd')
+    ctx.fill('evenodd')
 
   make_interactive: ->
     @is_dragging = false  # TODO: use current mouse state
